@@ -1,6 +1,6 @@
 <template>
     <div
-      :class="[settings.backgroundColor, 'shadow-md rounded p-6 transition-opacity duration-500', isVisible ? 'opacity-100' : 'opacity-0']"
+      :class="[settings.backgroundColor, 'shadow-md rounded p-6 transition-opacity duration-500', isLoadedFields ? 'opacity-100' : 'opacity-0']"
     >
       <h2 class="text-2xl font-semibold mb-4">Your contact data</h2>
       <form @submit.prevent="submitForm" class="space-y-4">
@@ -14,6 +14,7 @@
             :type="field.type"
             :id="field.name"
             v-model="formData[field.name]"
+            @input="clearError(field.name)"
             :placeholder="getPlaceholder(field)"
             class="block w-full p-2 border border-gray-300 rounded"
           />
@@ -21,6 +22,7 @@
             v-if="field.type === 'select'"
             :id="field.name"
             v-model="formData[field.name]"
+            @change="clearError(field.name)"
             class="block w-full p-2 border border-gray-300 rounded"
           >
             <option value="" disabled selected>{{ getPlaceholder(field) }}</option>
@@ -33,9 +35,11 @@
             type="date"
             :id="field.name"
             v-model="formData[field.name]"
+            @input="clearError(field.name)"
             :placeholder="getPlaceholder(field)"
             class="block w-full p-2 border border-gray-300 rounded"
           />
+          <!-- Validation Error Message -->
           <p v-if="errors[field.name]" class="text-red-500 text-sm mt-1">
             {{ errors[field.name] }}
           </p>
@@ -52,8 +56,8 @@
     </div>
   </template>
   
-<script lang="ts">
-  import { defineComponent, reactive, ref, onMounted } from 'vue';
+  <script lang="ts">
+  import { defineComponent, reactive, PropType } from 'vue';
   import axios from 'axios';
   
   interface Field {
@@ -70,91 +74,90 @@
   
   export default defineComponent({
     name: 'QuestionaryForm',
-    setup() {
-      const fields = reactive<Field[]>([]);
+    props: {
+      fields: {
+        type: Array as PropType<Field[]>,
+        required: true,
+      },
+      settings: {
+        type: Object as PropType<Settings>,
+        required: true,
+      },
+      isLoadedFields: {
+        type: Boolean,
+        required: true,
+      },
+    },
+    setup(props) {
       const formData = reactive<Record<string, string | null>>({});
-      const settings = reactive<Settings>({ backgroundColor: 'bg-white' });
-      const isVisible = ref(false);
       const errors = reactive<Record<string, string | null>>({});
   
-      const fetchFields = async () => {
-        try {
-          const { data } = await axios.get('/api/form');
-          if (data.fields && Array.isArray(data.fields)) {
-            fields.push(...data.fields);
-            fields.forEach((field) => {
-              formData[field.name] = '';
-              errors[field.name] = null;
-            });
-            isVisible.value = true;
-          } else {
-            console.error('Invalid fields response:', data);
-          }
+      // Initialize formData and errors
+      props.fields.forEach((field) => {
+        formData[field.name] = '';
+        errors[field.name] = null;
+      });
   
-          if (data.settings) {
-            settings.backgroundColor = data.settings.backgroundColor || 'bg-white';
-          }
-        } catch (error) {
-          console.error('Failed to fetch form fields:', error);
-          alert('Error fetching form fields. Please try again later.');
-        }
+      const clearError = (fieldName: string) => {
+        errors[fieldName] = null;
       };
   
       const submitForm = async () => {
         try {
           const response = await axios.post('/api/form/submit', formData);
           alert(response.data.message);
+
           Object.keys(errors).forEach((key) => {
             errors[key] = null;
           });
-          scrollToTop();
         } catch (error: any) {
           if (error.response && error.response.data.errors) {
             const serverErrors = error.response.data.errors;
-            Object.keys(errors).forEach((key) => {
-              errors[key] = serverErrors[key] ? serverErrors[key][0] : null;
-            });
-          scrollToTop();
+  
+            for (const key in serverErrors) {
+              if (serverErrors[key]?.length) {
+                errors[key] = serverErrors[key][0];
+              }
+            }
           } else {
             console.error('Form submission failed:', error);
             alert('Form submission failed. Please try again.');
           }
+        } finally {
+          scrollToTop();
         }
       };
   
       const getPlaceholder = (field: Field): string => {
         if (field.name === 'phoneNumber') {
-            return '+380xxxxxxxxx';
+          return '+380xxxxxxxxx';
         } else if (field.type === 'email') {
-            return 'example@domain.com';
+          return 'example@domain.com';
         } else if (field.type === 'text') {
-            return `Enter your ${field.label.toLowerCase()}`;
+          return `${field.label.toLowerCase()}`;
         } else if (field.type === 'date') {
-            return 'YYYY-MM-DD';
+          return 'YYYY-MM-DD';
         } else if (field.type === 'select') {
-            return `${field.label.toLowerCase()}`;
+          return `${field.label.toLowerCase()}`;
         }
         return '';
       };
-
+  
       const scrollToTop = () => {
         window.scrollTo({
-        top: 0,
-        behavior: 'smooth',
+          top: 0,
+          behavior: 'smooth',
         });
-      }
-  
-      onMounted(fetchFields);
+      };
   
       return {
-        fields,
         formData,
-        settings,
-        isVisible,
         errors,
         submitForm,
         getPlaceholder,
+        clearError,
       };
     },
   });
-</script>
+  </script>
+  
