@@ -32,7 +32,7 @@ class QuestionaryFormRequest extends FormRequest
                 'string',
                 'regex:/^\+380\d{9}$/',
             ],
-            'document' => 'nullable|string|max:255',
+            'document' => 'required|string|max:255',
         ];
     }
 
@@ -55,6 +55,7 @@ class QuestionaryFormRequest extends FormRequest
             'email.email' => 'Поле "Пошта" має бути валідною електронною адресою.',
             'phoneNumber.required' => 'Поле "Номер телефону" є обов’язковим.',
             'phoneNumber.regex' => 'Поле "Номер телефону" має бути у форматі +380XXXXXXXXX.',
+            'document.required' => 'Поле "Серія та номер документу" є обов’язковим.',
         ];
     }
 }

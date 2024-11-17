@@ -19,7 +19,7 @@ class QuestionaryFormController extends Controller
                 ['name' => 'position', 'type' => 'text', 'label' => 'Посада', 'required' => true],
                 ['name' => 'email', 'type' => 'email', 'label' => 'Пошта', 'required' => true],
                 ['name' => 'phoneNumber', 'type' => 'text', 'label' => 'Номер телефону', 'required' => true],
-                ['name' => 'document', 'type' => 'text', 'label' => 'Серія та номер документу', 'required' => false],
+                ['name' => 'document', 'type' => 'text', 'label' => 'Серія та номер документу', 'required' => true],
             ],
             'rules' => (new QuestionaryFormRequest())->rules(),
             'messages' => (new QuestionaryFormRequest())->messages(),
