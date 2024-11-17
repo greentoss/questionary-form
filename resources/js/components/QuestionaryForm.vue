@@ -23,7 +23,6 @@
             v-model="formData[field.name]"
             class="block w-full p-2 border border-gray-300 rounded"
           >
-            <!-- Add placeholder as the first option -->
             <option value="" disabled selected>{{ getPlaceholder(field) }}</option>
             <option v-for="option in field.options" :key="option" :value="option">
               {{ option }}
@@ -37,7 +36,6 @@
             :placeholder="getPlaceholder(field)"
             class="block w-full p-2 border border-gray-300 rounded"
           />
-          <!-- Display error message if present -->
           <p v-if="errors[field.name]" class="text-red-500 text-sm mt-1">
             {{ errors[field.name] }}
           </p>
@@ -77,14 +75,13 @@
       const formData = reactive<Record<string, string | null>>({});
       const settings = reactive<Settings>({ backgroundColor: 'bg-white' });
       const isVisible = ref(false);
-      const errors = reactive<Record<string, string | null>>({}); // Reactive errors object
+      const errors = reactive<Record<string, string | null>>({});
   
       const fetchFields = async () => {
         try {
           const { data } = await axios.get('/api/form');
           if (data.fields && Array.isArray(data.fields)) {
             fields.push(...data.fields);
-            // Initialize formData and errors with empty values
             fields.forEach((field) => {
               formData[field.name] = '';
               errors[field.name] = null;
@@ -107,17 +104,17 @@
         try {
           const response = await axios.post('/api/form/submit', formData);
           alert(response.data.message);
-          // Clear errors on successful submission
           Object.keys(errors).forEach((key) => {
             errors[key] = null;
           });
+          scrollToTop();
         } catch (error: any) {
           if (error.response && error.response.data.errors) {
-            // Populate errors with validation messages
             const serverErrors = error.response.data.errors;
             Object.keys(errors).forEach((key) => {
               errors[key] = serverErrors[key] ? serverErrors[key][0] : null;
             });
+          scrollToTop();
           } else {
             console.error('Form submission failed:', error);
             alert('Form submission failed. Please try again.');
@@ -140,6 +137,12 @@
         return '';
       };
 
+      const scrollToTop = () => {
+        window.scrollTo({
+        top: 0,
+        behavior: 'smooth',
+        });
+      }
   
       onMounted(fetchFields);
   
