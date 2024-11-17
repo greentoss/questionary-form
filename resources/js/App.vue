@@ -1,9 +1,8 @@
 <template>
-    <div :class="settings.backgroundColor" class="min-h-screen m-auto px-0 sm:px-4 md:px-8 py-8 max-w-[1240px]">
+    <div class="bg-white min-h-screen m-auto px-0 sm:px-4 md:px-8 py-8 max-w-[1240px]">
       <h1 class="text-4xl font-bold text-center mb-8">Dynamic Form Application</h1>
       <QuestionaryForm
         :fields="fields"
-        :settings="settings"
         :isLoadedFields="isLoadedFields"
       />
     </div>
@@ -13,10 +12,6 @@
   import { defineComponent, reactive, ref, onMounted } from 'vue';
   import axios from 'axios';
   import QuestionaryForm from './components/QuestionaryForm.vue';
-  
-  interface Settings {
-    backgroundColor: string;
-  }
   
   interface Field {
     name: string;
@@ -30,17 +25,12 @@
     name: 'App',
     components: { QuestionaryForm },
     setup() {
-      const settings = reactive<Settings>({
-        backgroundColor: 'bg-white',
-      });
-  
       const fields = reactive<Field[]>([]);
       const isLoadedFields = ref(false);
   
-      const fetchSettingsAndFields = async () => {
+      const fetchFields = async () => {
         try {
           const { data } = await axios.get('/api/form');
-          Object.assign(settings, data.settings);
   
           if (data.fields && Array.isArray(data.fields)) {
             fields.push(...data.fields);
@@ -49,14 +39,14 @@
             console.error('Invalid fields response:', data);
           }
         } catch (error) {
-          console.error('Failed to fetch settings and fields:', error);
-          alert('Error fetching settings and fields. Please try again later.');
+          console.error('Failed to fetch form fields:', error);
+          alert('Error fetching form fields. Please try again later.');
         }
       };
   
-      onMounted(fetchSettingsAndFields);
+      onMounted(fetchFields);
   
-      return { settings, fields, isLoadedFields };
+      return { fields, isLoadedFields };
     },
   });
   </script>

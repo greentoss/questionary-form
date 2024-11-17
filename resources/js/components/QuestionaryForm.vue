@@ -1,7 +1,5 @@
 <template>
-    <div
-      :class="[settings.backgroundColor, 'shadow-md rounded p-6 transition-opacity duration-500', isLoadedFields ? 'opacity-100' : 'opacity-0']"
-    >
+    <div class="shadow-md rounded p-6 transition-opacity duration-500" :class="{ 'opacity-100': isLoadedFields, 'opacity-0': !isLoadedFields }">
       <h2 class="text-2xl font-semibold mb-4">Your contact data</h2>
       <form @submit.prevent="submitForm" class="space-y-4">
         <div v-for="field in fields" :key="field.name" class="mb-4">
@@ -68,19 +66,11 @@
     options?: string[];
   }
   
-  interface Settings {
-    backgroundColor: string;
-  }
-  
   export default defineComponent({
     name: 'QuestionaryForm',
     props: {
       fields: {
         type: Array as PropType<Field[]>,
-        required: true,
-      },
-      settings: {
-        type: Object as PropType<Settings>,
         required: true,
       },
       isLoadedFields: {
@@ -92,7 +82,6 @@
       const formData = reactive<Record<string, string | null>>({});
       const errors = reactive<Record<string, string | null>>({});
   
-      // Initialize formData and errors
       props.fields.forEach((field) => {
         formData[field.name] = '';
         errors[field.name] = null;
@@ -106,7 +95,7 @@
         try {
           const response = await axios.post('/api/form/submit', formData);
           alert(response.data.message);
-
+  
           Object.keys(errors).forEach((key) => {
             errors[key] = null;
           });
