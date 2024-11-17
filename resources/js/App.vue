@@ -16,7 +16,7 @@
   
   export default defineComponent({
     name: 'App',
-    components: { QuestionaryForm },А
+    components: { QuestionaryForm },
     setup() {
       const settings = reactive<Settings>({
         backgroundColor: 'bg-white',

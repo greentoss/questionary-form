@@ -14,7 +14,7 @@ class AddCspHeaders
 
         $response->headers->set(
             'Content-Security-Policy',
-            "style-src 'self' http://localhost:5173 'unsafe-inline'; script-src 'self' http://localhost:5173; font-src 'self';"
+            "script-src 'self' 'unsafe-inline' http://localhost:5173 'wasm-unsafe-eval' 'inline-speculation-rules'; style-src 'self' 'unsafe-inline' http://localhost:5173;"
         );
 
         return $response;
