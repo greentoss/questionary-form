@@ -9,36 +9,32 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, PropType } from 'vue';
+  import { defineComponent, PropType } from 'vue';
 
-export default defineComponent({
-  name: 'ProgressBar',
-  props: {
-    progress: {
-      type: Number,
-      required: true,
-      validator: (value: number) => value >= 0 && value <= 100,
+  export default defineComponent({
+    name: 'ProgressBar',
+    props: {
+      progress: {
+        type: Number,
+        required: true,
+        validator: (value: number) => value >= 0 && value <= 100,
+      },
+      status: {
+        type: String as PropType<'default' | 'success' | 'error'>,
+        default: 'default',
+      },
     },
-    status: {
-      type: String as PropType<'default' | 'success' | 'error'>,
-      default: 'default',
+    computed: {
+      progressColor(): string {
+        switch (this.status) {
+          case 'success':
+            return 'bg-green-500'; // Green when successful
+          case 'error':
+            return 'bg-red-500'; // Red when an error occurs
+          default:
+            return 'bg-blue-500'; // Blue during normal progress
+        }
+      },
     },
-  },
-  computed: {
-    progressColor(): string {
-      switch (this.status) {
-        case 'success':
-          return 'bg-green-500'; // Green when successful
-        case 'error':
-          return 'bg-red-500'; // Red when an error occurs
-        default:
-          return 'bg-blue-500'; // Blue during normal progress
-      }
-    },
-  },
-});
+  });
 </script>
-
-<style scoped>
-/* Scoped styles for additional customizations if needed */
-</style>

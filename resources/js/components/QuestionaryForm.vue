@@ -2,7 +2,7 @@
     <div class="shadow-md rounded p-6 transition-opacity duration-500" :class="{ 'opacity-100': isLoadedFields, 'opacity-0': !isLoadedFields }">
       <h2 class="text-2xl font-semibold mb-4">Your contact data</h2>
       <div class="mt-4 mb-6">
-        <ProgressBar :progress="progress" :status="progressStatus" />
+        <ProgressBar :progress="progress || 0" :status="progressStatus" />
       </div>
       <form @submit.prevent="submitForm" class="space-y-4">
         <div v-for="field in fields" :key="field.name" class="mb-4">
@@ -57,123 +57,124 @@
     </div>
   </template>
   
-  <script lang="ts">
-  import { defineComponent, reactive, computed, PropType } from 'vue';
-  import axios from 'axios';
-  import ProgressBar from './molecules/ProgressBar.vue';
-  
-  interface Field {
+<script lang="ts">
+    import { defineComponent, reactive, ref, computed, PropType } from 'vue';
+    import axios from 'axios';
+    import ProgressBar from './molecules/ProgressBar.vue';
+
+    interface Field {
     name: string;
     type: string;
     label: string;
     required: boolean;
     options?: string[];
-  }
-  
-  export default defineComponent({
+    }
+
+    export default defineComponent({
     name: 'QuestionaryForm',
     components: { ProgressBar },
     props: {
-      fields: {
+        fields: {
         type: Array as PropType<Field[]>,
         required: true,
-      },
-      isLoadedFields: {
+        },
+        isLoadedFields: {
         type: Boolean,
         required: true,
-      },
+        },
     },
     setup(props) {
-      const formData = reactive<Record<string, string | null>>({});
-      const errors = reactive<Record<string, string | null>>({});
-      const progressStatus = reactive<'default' | 'success' | 'error'>('default');
-  
-      // Initialize formData and errors
-      props.fields.forEach((field) => {
+        const formData = reactive<Record<string, string | null>>({});
+        const errors = reactive<Record<string, string | null>>({});
+        const progressStatus = ref<'default' | 'success' | 'error'>('default'); // Use `ref`
+
+        // Initialize formData and errors
+        props.fields.forEach((field) => {
         formData[field.name] = '';
         errors[field.name] = null;
-      });
-  
-      // Compute progress based on filled fields
-      const progress = computed(() => {
-        const totalFields = props.fields.length;
-        const filledFields = Object.values(formData).filter((value) => value && value.trim() !== '').length;
-        return Math.round((filledFields / totalFields) * 100);
-      });
-  
-      const handleInput = () => {
-        // Dynamically calculate progress on user input
+        });
+
+        // Compute progress based on filled fields
+        const progress = computed(() => {
+            const totalFields = props.fields.length;
+            if (totalFields === 0) return 0; // Prevent division by zero
+            const filledFields = Object.values(formData).filter((value) => value && value.trim() !== '').length;
+            return Math.round((filledFields / totalFields) * 100);
+        });
+
+        const handleInput = () => {
         progressStatus.value = 'default'; // Reset status to default while filling
-      };
-  
-      const clearError = (fieldName: string) => {
+        };
+
+        const clearError = (fieldName: string) => {
         errors[fieldName] = null;
-      };
-  
-      const submitForm = async () => {
+        };
+
+        const submitForm = async () => {
         try {
-          const response = await axios.post('/api/form/submit', formData);
-          alert(response.data.message);
-  
-          Object.keys(errors).forEach((key) => {
+            const response = await axios.post('/api/form/submit', formData);
+            alert(response.data.message);
+
+            Object.keys(errors).forEach((key) => {
             errors[key] = null;
-          });
-  
-          progressStatus.value = 'success'; // Green bar on successful submission
+            });
+
+            progressStatus.value = 'success'; // Green bar on successful submission
         } catch (error: any) {
-          if (error.response && error.response.data.errors) {
+            if (error.response && error.response.data.errors) {
             const serverErrors = error.response.data.errors;
-  
+
             for (const key in serverErrors) {
-              if (serverErrors[key]?.length) {
+                if (serverErrors[key]?.length) {
                 errors[key] = serverErrors[key][0];
-              }
+                }
             }
-  
-            progressStatus.value = 'error'; // Red bar on submission failure
-          } else {
+
+            progressStatus.value = 'error'; // Red bar on validation failure
+            } else {
             console.error('Form submission failed:', error);
             alert('Form submission failed. Please try again.');
             progressStatus.value = 'error';
-          }
+            }
         } finally {
-          scrollToTop();
+            scrollToTop();
         }
-      };
-  
-      const getPlaceholder = (field: Field): string => {
+        };
+
+        const getPlaceholder = (field: Field): string => {
         if (field.name === 'phoneNumber') {
-          return '+380xxxxxxxxx';
+            return '+380xxxxxxxxx';
         } else if (field.type === 'email') {
-          return 'example@domain.com';
+            return 'example@domain.com';
         } else if (field.type === 'text') {
-          return `${field.label.toLowerCase()}`;
+            return `${field.label.toLowerCase()}`;
         } else if (field.type === 'date') {
-          return 'YYYY-MM-DD';
+            return 'YYYY-MM-DD';
         } else if (field.type === 'select') {
-          return `${field.label.toLowerCase()}`;
+            return `${field.label.toLowerCase()}`;
         }
         return '';
-      };
-  
-      const scrollToTop = () => {
+        };
+
+        const scrollToTop = () => {
         window.scrollTo({
-          top: 0,
-          behavior: 'smooth',
+            top: 0,
+            behavior: 'smooth',
         });
-      };
-  
-      return {
+        };
+
+        return {
         formData,
         errors,
         progress,
-        progressStatus,
+        progressStatus, // Pass ref to template
         submitForm,
         getPlaceholder,
         clearError,
         handleInput,
-      };
+        };
     },
-  });
-  </script>
+    });
+
+</script>
   
