@@ -1,6 +1,9 @@
 <template>
     <div class="shadow-md rounded p-6 transition-opacity duration-500" :class="{ 'opacity-100': isLoadedFields, 'opacity-0': !isLoadedFields }">
       <h2 class="text-2xl font-semibold mb-4">Your contact data</h2>
+      <div class="mt-4 mb-6">
+        <ProgressBar :progress="progress" :status="progressStatus" />
+      </div>
       <form @submit.prevent="submitForm" class="space-y-4">
         <div v-for="field in fields" :key="field.name" class="mb-4">
           <label :for="field.name" class="block font-medium text-gray-700">
@@ -12,7 +15,7 @@
             :type="field.type"
             :id="field.name"
             v-model="formData[field.name]"
-            @input="clearError(field.name)"
+            @input="handleInput"
             :placeholder="getPlaceholder(field)"
             class="block w-full p-2 border border-gray-300 rounded"
           />
@@ -20,10 +23,10 @@
             v-if="field.type === 'select'"
             :id="field.name"
             v-model="formData[field.name]"
-            @change="clearError(field.name)"
+            @change="handleInput"
             class="block w-full p-2 border border-gray-300 rounded"
           >
-            <option value="" disabled selected>{{ getPlaceholder(field) }}</option>
+            <option value="" disabled>{{ getPlaceholder(field) }}</option>
             <option v-for="option in field.options" :key="option" :value="option">
               {{ option }}
             </option>
@@ -33,7 +36,7 @@
             type="date"
             :id="field.name"
             v-model="formData[field.name]"
-            @input="clearError(field.name)"
+            @input="handleInput"
             :placeholder="getPlaceholder(field)"
             class="block w-full p-2 border border-gray-300 rounded"
           />
@@ -55,8 +58,9 @@
   </template>
   
   <script lang="ts">
-  import { defineComponent, reactive, PropType } from 'vue';
+  import { defineComponent, reactive, computed, PropType } from 'vue';
   import axios from 'axios';
+  import ProgressBar from './molecules/ProgressBar.vue';
   
   interface Field {
     name: string;
@@ -68,6 +72,7 @@
   
   export default defineComponent({
     name: 'QuestionaryForm',
+    components: { ProgressBar },
     props: {
       fields: {
         type: Array as PropType<Field[]>,
@@ -81,11 +86,25 @@
     setup(props) {
       const formData = reactive<Record<string, string | null>>({});
       const errors = reactive<Record<string, string | null>>({});
+      const progressStatus = reactive<'default' | 'success' | 'error'>('default');
   
+      // Initialize formData and errors
       props.fields.forEach((field) => {
         formData[field.name] = '';
         errors[field.name] = null;
       });
+  
+      // Compute progress based on filled fields
+      const progress = computed(() => {
+        const totalFields = props.fields.length;
+        const filledFields = Object.values(formData).filter((value) => value && value.trim() !== '').length;
+        return Math.round((filledFields / totalFields) * 100);
+      });
+  
+      const handleInput = () => {
+        // Dynamically calculate progress on user input
+        progressStatus.value = 'default'; // Reset status to default while filling
+      };
   
       const clearError = (fieldName: string) => {
         errors[fieldName] = null;
@@ -99,6 +118,8 @@
           Object.keys(errors).forEach((key) => {
             errors[key] = null;
           });
+  
+          progressStatus.value = 'success'; // Green bar on successful submission
         } catch (error: any) {
           if (error.response && error.response.data.errors) {
             const serverErrors = error.response.data.errors;
@@ -108,9 +129,12 @@
                 errors[key] = serverErrors[key][0];
               }
             }
+  
+            progressStatus.value = 'error'; // Red bar on submission failure
           } else {
             console.error('Form submission failed:', error);
             alert('Form submission failed. Please try again.');
+            progressStatus.value = 'error';
           }
         } finally {
           scrollToTop();
@@ -142,9 +166,12 @@
       return {
         formData,
         errors,
+        progress,
+        progressStatus,
         submitForm,
         getPlaceholder,
         clearError,
+        handleInput,
       };
     },
   });
