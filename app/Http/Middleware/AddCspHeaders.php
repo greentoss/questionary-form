@@ -8,26 +8,15 @@ use Symfony\Component\HttpFoundation\Response;
 
 class AddCspHeaders
 {
-    /**
-     * Handle an incoming request.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \Closure  $next
-     * @return mixed
-     */
     public function handle(Request $request, Closure $next): Response
     {
         $response = $next($request);
 
-        // Allow Vite's development server and unsafe-inline for scripts
         $response->headers->set(
             'Content-Security-Policy',
-            "script-src 'self' 'unsafe-inline' http://localhost:5173; " .
-            "style-src 'self' 'unsafe-inline' http://localhost:5173; " .
-            "style-src-elem 'self' http://localhost:5173;"
+            "style-src 'self' http://localhost:5173 'unsafe-inline'; script-src 'self' http://localhost:5173; font-src 'self';"
         );
 
         return $response;
     }
 }
-
