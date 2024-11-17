@@ -26,7 +26,7 @@
             @change="clearError(field.name)"
             class="block w-full p-2 border border-gray-300 rounded"
           >
-            <option value="" disabled>{{ getPlaceholder(field) }}</option>
+            <option value="" disabled selected>{{ getPlaceholder(field) }}</option>
             <option v-for="option in field.options" :key="option" :value="option">
               {{ option }}
             </option>
@@ -61,6 +61,7 @@
   import { defineComponent, reactive, ref, computed, PropType } from 'vue';
   import axios from 'axios';
   import ProgressBar from './molecules/ProgressBar.vue';
+  import { watch } from 'vue';
   
   interface Field {
     name: string;
@@ -84,62 +85,79 @@
       },
     },
     setup(props) {
-      const formData = reactive<Record<string, string | null>>({});
+      const formData = reactive<Record<string, string>>({});
       const errors = reactive<Record<string, string | null>>({});
       const progressStatus = ref<'default' | 'success' | 'error'>('default');
   
-      // Initialize formData and errors
-      props.fields.forEach((field) => {
-        formData[field.name] = '';
-        errors[field.name] = null;
-      });
+      // Initialize formData
+      watch(
+        () => props.isLoadedFields,
+        (loaded) => {
+          if (loaded) {
+            props.fields.forEach((field) => {
+              // Initialize all fields with empty string to ensure placeholder visibility
+              formData[field.name] = '';
+            });
+          }
+        },
+        { immediate: true } // Run immediately on component creation
+      );
   
       // Compute progress based on filled fields
       const progress = computed(() => {
         const totalFields = props.fields.length;
-        if (totalFields === 0) return 0; // Prevent division by zero
-        const filledFields = Object.values(formData).filter((value) => value && value.trim() !== '').length;
+        if (totalFields === 0) return 0;
+        const filledFields = Object.values(formData).filter(
+          (value) => value && value.trim() !== ''
+        ).length;
         return Math.round((filledFields / totalFields) * 100);
       });
   
-      // Check if there are any validation errors
       const hasErrors = computed(() => {
         return Object.values(errors).some((error) => error !== null);
       });
   
-      // Watch for changes in `hasErrors` to update progressStatus
       const clearError = (fieldName: string) => {
         errors[fieldName] = null;
         if (!hasErrors.value) {
-          progressStatus.value = 'default'; // Reset progress bar color when no errors
+          progressStatus.value = 'default';
         }
       };
   
       const handleInput = () => {
-        progressStatus.value = 'default'; // Reset status to default while filling
+        progressStatus.value = 'default';
+      };
+  
+      const getPlaceholder = (field: Field): string => {
+        if (field.name === 'phoneNumber') {
+          return '+380xxxxxxxxx';
+        } else if (field.type === 'email') {
+          return 'example@domain.com';
+        } else if (field.type === 'select') {
+          return `${field.label.toLowerCase()}`;  // Modified to be more descriptive
+        } else if (field.type === 'date') {
+          return 'YYYY-MM-DD';
+        }
+        return `${field.label.toLowerCase()}`; // Modified to be more descriptive
       };
   
       const submitForm = async () => {
         try {
           const response = await axios.post('/api/form/submit', formData);
           alert(response.data.message);
-  
           Object.keys(errors).forEach((key) => {
             errors[key] = null;
           });
-  
-          progressStatus.value = 'success'; // Green bar on successful submission
+          progressStatus.value = 'success';
         } catch (error: any) {
-          if (error.response && error.response.data.errors) {
+          if (error.response?.data?.errors) {
             const serverErrors = error.response.data.errors;
-  
             for (const key in serverErrors) {
               if (serverErrors[key]?.length) {
                 errors[key] = serverErrors[key][0];
               }
             }
-  
-            progressStatus.value = 'error'; // Red bar on validation failure
+            progressStatus.value = 'error';
           } else {
             console.error('Form submission failed:', error);
             alert('Form submission failed. Please try again.');
@@ -148,21 +166,6 @@
         } finally {
           scrollToTop();
         }
-      };
-  
-      const getPlaceholder = (field: Field): string => {
-        if (field.name === 'phoneNumber') {
-          return '+380xxxxxxxxx';
-        } else if (field.type === 'email') {
-          return 'example@domain.com';
-        } else if (field.type === 'text') {
-          return `${field.label.toLowerCase()}`;
-        } else if (field.type === 'date') {
-          return 'YYYY-MM-DD';
-        } else if (field.type === 'select') {
-          return `${field.label.toLowerCase()}`;
-        }
-        return '';
       };
   
       const scrollToTop = () => {
@@ -181,9 +184,8 @@
         getPlaceholder,
         clearError,
         handleInput,
-        hasErrors, // Track error state
+        hasErrors,
       };
     },
   });
   </script>
-  
